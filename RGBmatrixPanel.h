@@ -41,7 +41,9 @@ class RGBmatrixPanel : public Adafruit_GFX {
     fillScreen(uint16_t c),
     updateDisplay(void),
     swapBuffers(boolean),
-    dumpMatrix(void);
+    dumpMatrix(void),
+    enableOutput(void),
+    disableOutput(void);
   uint8_t
     *backBuffer(void);
   uint16_t
@@ -57,6 +59,7 @@ class RGBmatrixPanel : public Adafruit_GFX {
   uint8_t          nRows;
   volatile uint8_t backindex;
   volatile boolean swapflag;
+  volatile boolean forceOutputDisabled;
 
   // Init/alloc code common to both constructors:
   void init(uint8_t rows, uint8_t a, uint8_t b, uint8_t c,

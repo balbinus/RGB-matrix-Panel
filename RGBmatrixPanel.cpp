@@ -183,10 +183,17 @@ RGBmatrixPanel::RGBmatrixPanel(
 }
 
 #if defined(ARDUINO_ARCH_SAMD)
+#if defined(TC4)
 #define TIMER         TC4
 #define IRQN          TC4_IRQn
 #define IRQ_HANDLER   TC4_Handler
 #define TIMER_GCLK_ID TC4_GCLK_ID
+#else
+#define TIMER         TC3
+#define IRQN          TC3_IRQn
+#define IRQ_HANDLER   TC3_Handler
+#define TIMER_GCLK_ID TC3_GCLK_ID
+#endif
 #endif
 
 void RGBmatrixPanel::begin(void) {
@@ -205,6 +212,8 @@ void RGBmatrixPanel::begin(void) {
   if(nRows > 8) {
     pinMode(_d, OUTPUT); *addrdport &= ~addrdmask; // Low
   }
+
+  enableOutput();
 
 #if defined(__AVR__)
 
@@ -554,6 +563,18 @@ void RGBmatrixPanel::dumpMatrix(void) {
   Serial.println(F("\n};"));
 }
 
+// ---------------------- Global output enable ---------------------
+
+void RGBmatrixPanel::enableOutput(void)
+{
+    forceOutputDisabled = false;
+}
+
+void RGBmatrixPanel::disableOutput(void)
+{
+    forceOutputDisabled = true;
+}
+
 // -------------------- Interrupt handler stuff --------------------
 
 #if defined(__AVR__)
@@ -624,7 +645,10 @@ void IRQ_HANDLER() {
 // function...hopefully tenses are sufficiently commented.
 
 void RGBmatrixPanel::updateDisplay(void) {
-  uint8_t  i, tick, tock, *ptr;
+  uint8_t  *ptr;
+#if defined(__AVR__)
+  uint8_t  i, tick, tock;
+#endif
   uint16_t t, duration;
 
   *oeport  |= oemask;  // Disable LED output during row/plane switchover
@@ -692,7 +716,10 @@ void RGBmatrixPanel::updateDisplay(void) {
   while(TIMER->COUNT16.STATUS.bit.SYNCBUSY);
 #endif // SAMD21
 #endif // ARDUINO_ARCH_SAMD
-  *oeport  &= ~oemask;  // Re-enable output
+  if (!forceOutputDisabled)
+  {
+    *oeport  &= ~oemask;  // Re-enable output
+  }
   *latport &= ~latmask; // Latch down
 
   // Record current state of CLKPORT register, as well as a second
